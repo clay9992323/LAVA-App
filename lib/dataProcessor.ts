@@ -91,6 +91,7 @@ export class DataProcessor {
       city: this.groupByField(filteredData, 'County'), // Using County as city
       zipCode: this.groupByField(filteredData, 'ZipCode'),
       dma: this.groupByField(filteredData, 'DMA'),
+      congressional: this.groupByField(filteredData, 'US_Congressional_District'),
       stateSenateDistrict: {},
       stateHouseDistrict: {},
     };
