@@ -1,0 +1,322 @@
+{
+  "baseUrl": "https://causewayappsapi-f9c7fmb8e5emhzbg.southcentralus-01.azurewebsites.net",
+  "auth": {
+    "type": "apiKey",
+    "in": "header",
+    "name": "X-API-Key"
+  },
+  "endpoints": [
+    {
+      "method": "GET",
+      "path": "/api/apikeyverification/verify",
+      "tag": "ApiKeyVerification",
+      "summary": "Verify API key",
+      "request": null,
+      "responses": {
+        "200": "OK"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/Audience/count",
+      "tag": "Audience",
+      "summary": "Get audience count by filters",
+      "request": {
+        "contentType": "application/json",
+        "schema": "GetAudienceCountRequest"
+      },
+      "responses": {
+        "200": "AudienceCountResponse"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Dim/{dimType}",
+      "tag": "Dim",
+      "summary": "List dimension items by dimension type",
+      "pathParams": [
+        {
+          "name": "dimType",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "DimensionItem[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Dim/universe",
+      "tag": "Dim",
+      "summary": "List available universes",
+      "responses": {
+        "200": "DimUniverseItem[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Geo",
+      "tag": "Geo",
+      "summary": "List all geographies",
+      "responses": {
+        "200": "Geo[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Geo/{id}",
+      "tag": "Geo",
+      "summary": "Get a geography by ID",
+      "pathParams": [
+        {
+          "name": "id",
+          "type": "int32",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "Geo"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Geo/geotype/{geoTypeId}",
+      "tag": "Geo",
+      "summary": "List geographies for a geo type",
+      "pathParams": [
+        {
+          "name": "geoTypeId",
+          "type": "int32",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "Geo[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Geo/geocode/{geoCode}",
+      "tag": "Geo",
+      "summary": "List geographies by geoCode",
+      "pathParams": [
+        {
+          "name": "geoCode",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "Geo[]"
+      }
+    },
+    {
+      "method": "POST",
+      "path": "/api/Geo/view",
+      "tag": "Geo",
+      "summary": "Get summarized counts for a geography view",
+      "request": {
+        "contentType": "application/json",
+        "schema": "GeoCountViewRequest"
+      },
+      "responses": {
+        "200": "GeoCountView[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/Geo/listgeotypesbycodes",
+      "tag": "Geo",
+      "summary": "List geo types filtered by codes",
+      "queryParams": [
+        {
+          "name": "typeCode",
+          "type": "string",
+          "required": false
+        },
+        {
+          "name": "geoCode",
+          "type": "string",
+          "required": false
+        }
+      ],
+      "responses": {
+        "200": "GeoTypeItem[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/GeoDemoCount/geo/{geoId}",
+      "tag": "GeoDemoCount",
+      "summary": "Get demographic breakdown for a geography",
+      "pathParams": [
+        {
+          "name": "geoId",
+          "type": "int32",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "GeoDemographicsResponse"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/GeoTypes",
+      "tag": "GeoTypes",
+      "summary": "List all geo types",
+      "responses": {
+        "200": "GeoType[]"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/GeoTypes/{id}",
+      "tag": "GeoTypes",
+      "summary": "Get a geo type by ID",
+      "pathParams": [
+        {
+          "name": "id",
+          "type": "int32",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "GeoType"
+      }
+    },
+    {
+      "method": "GET",
+      "path": "/api/GeoTypes/code/{code}",
+      "tag": "GeoTypes",
+      "summary": "Get a geo type by code",
+      "pathParams": [
+        {
+          "name": "code",
+          "type": "string",
+          "required": true
+        }
+      ],
+      "responses": {
+        "200": "GeoType"
+      }
+    }
+  ],
+  "schemas": {
+    "GetAudienceCountRequest": {
+      "required": [
+        "geoId"
+      ],
+      "properties": {
+        "geoId": "int32 (required, 1..2147483647)",
+        "ageRangeIds": "string (comma-separated ids)",
+        "genderIds": "string (comma-separated ids)",
+        "partyIds": "string (comma-separated ids)",
+        "ethnicityIds": "string (comma-separated ids)",
+        "incomeIds": "string (comma-separated ids)",
+        "educationIds": "string (comma-separated ids)",
+        "generalVoteHistoryIds": "string (comma-separated ids)",
+        "primaryVoteHistoryIds": "string (comma-separated ids)",
+        "universeList": "string (comma-separated names)"
+      }
+    },
+    "AudienceCountResponse": {
+      "properties": {
+        "count": "int32",
+        "geoId": "int32",
+        "ageRangeIds": "string|null",
+        "genderIds": "string|null",
+        "partyIds": "string|null",
+        "ethnicityIds": "string|null",
+        "incomeIds": "string|null",
+        "educationIds": "string|null",
+        "generalVoteHistoryIds": "string|null",
+        "primaryVoteHistoryIds": "string|null",
+        "universeList": "string|null"
+      }
+    },
+    "Geo": {
+      "properties": {
+        "id": "int32",
+        "geoTypeId": "int32",
+        "geoCode": "string|null",
+        "subGeoCode": "string|null",
+        "count": "int32"
+      }
+    },
+    "GeoCountViewRequest": {
+      "required": [
+        "typeCode"
+      ],
+      "properties": {
+        "typeCode": "string (required, non-empty)",
+        "geoCode": "string|null",
+        "subGeoCode": "string|null"
+      }
+    },
+    "GeoCountView": {
+      "properties": {
+        "geoId": "int32",
+        "typeCode": "string|null",
+        "description": "string|null",
+        "geoCode": "string|null",
+        "subGeoCode": "string|null",
+        "count": "int32"
+      }
+    },
+    "DemoValueCount": {
+      "properties": {
+        "value": "string|null",
+        "count": "int32"
+      }
+    },
+    "GeoInfo": {
+      "properties": {
+        "id": "int32",
+        "geoTypeCode": "string|null",
+        "geoCode": "string|null",
+        "subGeoCode": "string|null",
+        "count": "int32"
+      }
+    },
+    "GeoDemographicsResponse": {
+      "properties": {
+        "geo": "GeoInfo",
+        "demographics": "map<string, DemoValueCount[]>|null"
+      }
+    },
+    "GeoType": {
+      "properties": {
+        "id": "int32",
+        "code": "string|null",
+        "description": "string|null",
+        "geoCodeColumnName": "string|null",
+        "subGeoCodeColumnName": "string|null"
+      }
+    },
+    "GeoTypeItem": {
+      "properties": {
+        "typeCode": "string|null",
+        "description": "string|null",
+        "geoCode": "string|null",
+        "subGeoCode": "string|null"
+      }
+    },
+    "DimensionItem": {
+      "properties": {
+        "id": "int32",
+        "name": "string|null",
+        "description": "string|null"
+      }
+    },
+    "DimUniverseItem": {
+      "properties": {
+        "id": "int32",
+        "code": "string|null",
+        "name": "string|null",
+        "description": "string|null"
+      }
+    }
+  }
+}

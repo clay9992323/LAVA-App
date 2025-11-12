@@ -1,0 +1,8 @@
+Gender,GenderKey,Ethnicity,EthnicityKey,AgeRange,AgeRangeKey,Party,PartyKey
+Female,1,Asian,1,18-24,1,Republican,1
+Male,2,Black,2,25-34,2,Democrat,2
+,,Hispanic,3,35-44,3,Independent,3
+,,White,4,45-54,4,,
+,,Other,5,55-64,5,,
+,,,,65+,6,,
+,,,,Unknown,7,,
