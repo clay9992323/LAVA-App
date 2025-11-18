@@ -437,7 +437,7 @@ export function GeographicSelector({ onGeographicChange, isDataLoaded, audienceS
     };
 
     fetchGeographicOptions();
-  }, [isDataLoaded, selections.state, selections.county, selections.dma]); // Removed demographicSelections to prevent fetch on mount
+  }, [isDataLoaded, selections, demographicSelections]); // Include all dependencies to satisfy linter
 
   // Memoize options to prevent excessive re-computation
   const optionsCache = useMemo(() => {

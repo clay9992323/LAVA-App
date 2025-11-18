@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { MapPin, Check, ChevronDown, ArrowLeft, Globe, Map, TrendingUp, X } from 'lucide-react';
 import { formatCountyName, formatStateName } from '@/lib/geoTitle';
 
@@ -205,14 +205,7 @@ export function GeoWizard({
     }
   }, [currentSelections]);
 
-  // Fetch refinement options when state is selected
-  useEffect(() => {
-    if (selectedState.length > 0 && currentStep === 'refinement-choice') {
-      fetchRefinementOptions();
-    }
-  }, [selectedState, currentStep]);
-
-  const fetchRefinementOptions = async () => {
+  const fetchRefinementOptions = useCallback(async () => {
     setIsLoadingOptions(true);
     try {
       const response = await fetch('/api/geographic-options', {
@@ -236,7 +229,14 @@ export function GeoWizard({
     } finally {
       setIsLoadingOptions(false);
     }
-  };
+  }, [selectedState, demographicSelections]);
+
+  // Fetch refinement options when state is selected
+  useEffect(() => {
+    if (selectedState.length > 0 && currentStep === 'refinement-choice') {
+      fetchRefinementOptions();
+    }
+  }, [selectedState, currentStep, fetchRefinementOptions]);
 
   const handleRouteSelection = (route: RouteType) => {
     if (route === 'national') {
@@ -378,7 +378,7 @@ export function GeoWizard({
               </h2>
             </div>
             <p className="text-gray-600 text-base font-medium">
-              Choose how you'd like to define your audience location
+              Choose how you&apos;d like to define your audience location
             </p>
           </div>
 
@@ -579,7 +579,7 @@ export function GeoWizard({
             Selected: <span className="font-bold text-gray-900">{selectedState[0]}</span>
           </p>
           <p className="text-gray-600 text-sm mt-1">
-            Choose a refinement option or select "None" for statewide data
+            Choose a refinement option or select &quot;None&quot; for statewide data
           </p>
         </div>
 

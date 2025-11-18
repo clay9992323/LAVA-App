@@ -124,7 +124,7 @@ export default function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [isDataLoaded]);
 
   // Client-side filtering function - memoized to prevent re-renders
   const applyClientSideFilters = useCallback(async (originalStats: any, geography: any, demographics: any, currentFilters: any) => {
@@ -742,7 +742,7 @@ export default function Dashboard() {
         fetchNational();
       }
     }
-  }, [isDataLoaded, geographicSelections, demographicSelections, currentFilters, applyClientSideFilters]);
+  }, [isDataLoaded, geographicSelections, demographicSelections, currentFilters, applyClientSideFilters, originalAudienceStats]);
 
   const handleFiltersChange = useCallback((filters: FilterGroup | null) => {
     setPendingFilters(filters);
