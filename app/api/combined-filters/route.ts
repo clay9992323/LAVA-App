@@ -97,10 +97,11 @@ function getCellPhoneCount(response?: AudienceCountResponse | Record<string, any
   const possibleKeys = ['hasCellPhoneCount', 'HasCellPhoneCount', 'hasCellPhone', 'HasCellPhone'];
   
   // Check primaryGeo.hasCellPhoneCount first (most common location)
-  if (response.primaryGeo && typeof response.primaryGeo === 'object') {
+  if ('primaryGeo' in response && response.primaryGeo && typeof response.primaryGeo === 'object') {
+    const primaryGeo = response.primaryGeo as Record<string, any>;
     for (const key of possibleKeys) {
-      if (key in response.primaryGeo) {
-        const count = (response.primaryGeo as any)[key];
+      if (key in primaryGeo) {
+        const count = primaryGeo[key];
         if (count !== null && count !== undefined) {
           const num = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : Number(count);
           if (Number.isFinite(num) && num > 0) return num;
@@ -130,10 +131,11 @@ function getHouseholdCount(response?: AudienceCountResponse | Record<string, any
   const possibleKeys = ['householdCount', 'HouseholdCount', 'household', 'Household'];
   
   // Check primaryGeo.householdCount first (most common location)
-  if (response.primaryGeo && typeof response.primaryGeo === 'object') {
+  if ('primaryGeo' in response && response.primaryGeo && typeof response.primaryGeo === 'object') {
+    const primaryGeo = response.primaryGeo as Record<string, any>;
     for (const key of possibleKeys) {
-      if (key in response.primaryGeo) {
-        const count = (response.primaryGeo as any)[key];
+      if (key in primaryGeo) {
+        const count = primaryGeo[key];
         if (count !== null && count !== undefined) {
           const num = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : Number(count);
           if (Number.isFinite(num) && num > 0) return num;
