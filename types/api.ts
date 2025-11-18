@@ -23,6 +23,7 @@ export interface GeoCountViewRequest {
 // Response Types
 export interface AudienceCountResponse {
   count: number;
+  personCount?: number | string | null;
   geoId: number;
   ageRangeIds: string | null;
   genderIds: string | null;
@@ -33,7 +34,44 @@ export interface AudienceCountResponse {
   generalVoteHistoryIds: string | null;
   primaryVoteHistoryIds: string | null;
   universeList: string | null;
+  breakdowns?: AudienceBreakdowns | null;
+  geographicBreakdown?: AudienceGeographicBreakdown | null;
+  geographicBreakdowns?: AudienceGeographicBreakdown | null;
+  geography?: AudienceGeographicBreakdown | null;
 }
+
+export interface AudienceBreakdowns {
+  geography?: AudienceGeographicBreakdown | null;
+  geographicBreakdown?: AudienceGeographicBreakdown | null;
+  geographicBreakdowns?: AudienceGeographicBreakdown | null;
+  [key: string]: AudienceGeographicBreakdown | undefined | null;
+}
+
+export interface AudienceGeographicBreakdownEntry {
+  level?: string | null;
+  type?: string | null;
+  typeCode?: string | null;
+  category?: string | null;
+  name?: string | null;
+  description?: string | null;
+  label?: string | null;
+  title?: string | null;
+  geoCode?: string | null;
+  subGeoCode?: string | null;
+  value?: string | null;
+  count?: number | string | null;
+  total?: number | string | null;
+  items?: AudienceGeographicBreakdownEntry[];
+  values?: AudienceGeographicBreakdownEntry[];
+  breakdown?: AudienceGeographicBreakdownEntry[] | Record<string, any>;
+  entries?: AudienceGeographicBreakdownEntry[];
+  [key: string]: any;
+}
+
+export type AudienceGeographicBreakdown =
+  | AudienceGeographicBreakdownEntry[]
+  | Record<string, AudienceGeographicBreakdownEntry[] | Record<string, number> | null>
+  | null;
 
 export interface Geo {
   id: number;

@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { MapPin, Check, ChevronDown, ArrowLeft, Globe, Map, TrendingUp, X } from 'lucide-react';
+import { formatCountyName, formatStateName } from '@/lib/geoTitle';
 
 interface GeoWizardProps {
   onGeographicChange: (geographic: GeographicSelections) => void;
@@ -313,7 +314,7 @@ export function GeoWizard({
     if (!audienceStats?.geography?.state) return [];
     return Object.keys(audienceStats.geography.state).map(value => ({
       value,
-      label: value
+      label: formatStateName(value)
     }));
   };
 
@@ -330,7 +331,7 @@ export function GeoWizard({
     if (selectedRefinementType === 'county') {
       return Object.keys(geographicOptions.counties || {}).map(value => ({
         value,
-        label: value
+        label: formatCountyName(value)
       }));
     } else if (selectedRefinementType === 'congressional') {
       return sortDistrictKeys(Object.keys(geographicOptions.congressionalDistricts || {})).map(value => ({

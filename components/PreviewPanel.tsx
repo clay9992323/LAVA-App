@@ -1,8 +1,9 @@
 'use client';
 
 import type { CSSProperties } from 'react';
-import { Users, MapPin, Target, PercentCircle, Zap, Home } from 'lucide-react';
+import { Users, MapPin, Target, PercentCircle, Zap, Home, Smartphone } from 'lucide-react';
 import { AudienceStats } from '@/types/audience';
+import { formatCountyName, formatStateName } from '@/lib/geoTitle';
 
 interface PreviewPanelProps {
   audienceStats: AudienceStats | null;
@@ -135,13 +136,13 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
                 background: 'linear-gradient(135deg, #FF4080, #FF8C4D)'
               }}
             >
-              <Zap className="h-6 w-6 text-white" />
+              <Home className="h-6 w-6 text-white" />
             </div>
             <div className="text-2xl lg:text-3xl font-bold mb-1 text-gray-900">
-              {filteredCount > 0 ? `${((audienceStats.engagement?.high || 0) / filteredCount * 100).toFixed(1)}%` : '0%'}
+              {formatNumber(audienceStats?.householdCount || 0)}
             </div>
             <div className="text-sm font-semibold text-gray-600">
-              High Engagement
+              Households
             </div>
           </div>
         </div>
@@ -157,39 +158,13 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
                 background: 'linear-gradient(135deg, #FF4080, #FF8C4D)'
               }}
             >
-              <Home className="h-6 w-6 text-white" />
+              <Smartphone className="h-6 w-6 text-white" />
             </div>
             <div className="text-2xl lg:text-3xl font-bold mb-1 text-gray-900">
-              {(() => {
-                if (!audienceStats?.demographics?.age) return '0';
-                
-                // Calculate weighted average age
-                const ageData = audienceStats.demographics.age;
-                let totalAge = 0;
-                let totalCount = 0;
-                
-                Object.entries(ageData).forEach(([ageRange, count]) => {
-                  const countNum = count as number;
-                  if (countNum > 0) {
-                    // Extract midpoint of age range
-                    if (ageRange.includes('-')) {
-                      const [min, max] = ageRange.split('-').map(Number);
-                      const midpoint = (min + max) / 2;
-                      totalAge += midpoint * countNum;
-                      totalCount += countNum;
-                    } else if (ageRange === '65+') {
-                      // Assume 70 for 65+ range
-                      totalAge += 70 * countNum;
-                      totalCount += countNum;
-                    }
-                  }
-                });
-                
-                return totalCount > 0 ? Math.round(totalAge / totalCount) : '0';
-              })()}
+              {formatNumber(audienceStats?.hasCellPhoneCount || 0)}
             </div>
             <div className="text-sm font-semibold text-gray-600">
-              Average Age
+              Cell Phone Counts
             </div>
           </div>
         </div>
@@ -211,7 +186,11 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
               <div className="text-sm font-semibold text-gray-700 mb-2">Gender</div>
               <div className="space-y-2">
                 {(() => {
-                  const genderEntries = Object.entries(audienceStats.demographics?.gender || {});
+                  const genderEntries = Object.entries(audienceStats.demographics?.gender || {})
+                    .filter(([key]) => {
+                      const lower = key.toLowerCase().trim();
+                      return lower !== 'unknown' && lower !== 'other/unknown' && lower !== 'other-unknown';
+                    });
                   const genderTotal = genderEntries.reduce((sum, [, value]) => sum + (value as number), 0);
                   return genderEntries.map(([key, value]) => {
                     const percentage = genderTotal > 0 ? ((value as number) / genderTotal * 100).toFixed(1) : '0.0';
@@ -233,11 +212,14 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
               <div className="text-sm font-semibold text-gray-700 mb-2">Age Range</div>
               <div className="space-y-2">
                 {Object.entries(audienceStats.demographics?.age || {})
+                  .filter(([key]) => {
+                    const lower = key.toLowerCase().trim();
+                    return lower !== 'unknown' && lower !== 'other/unknown' && lower !== 'other-unknown';
+                  })
                   .sort(([a], [b]) => {
                     // Define age range order
                     const ageOrder = [
-                      '18-24', '25-34', '35-44', '45-54', '55-64', '65+',
-                      'Unknown', 'Other' // Handle any unexpected values
+                      '18-24', '25-34', '35-44', '45-54', '55-64', '65+'
                     ];
                     const aIndex = ageOrder.indexOf(a);
                     const bIndex = ageOrder.indexOf(b);
@@ -255,7 +237,11 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
                     return a.localeCompare(b);
                   })
                   .map(([key, value]) => {
-                    const ageEntries = Object.entries(audienceStats.demographics?.age || {});
+                    const ageEntries = Object.entries(audienceStats.demographics?.age || {})
+                      .filter(([k]) => {
+                        const lower = k.toLowerCase().trim();
+                        return lower !== 'unknown' && lower !== 'other/unknown' && lower !== 'other-unknown';
+                      });
                     const ageTotal = ageEntries.reduce((sum, [, val]) => sum + (val as number), 0);
                     const percentage = ageTotal > 0 ? ((value as number) / ageTotal * 100).toFixed(1) : '0.0';
                     return (
@@ -341,9 +327,14 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
                     <div className="space-y-2">
                       {displayEntries.map(([key, value]) => {
                         const percentage = total > 0 ? ((value as number) / total * 100).toFixed(1) : '0.0';
+                        const displayKey = label === 'County'
+                          ? formatCountyName(key)
+                          : label === 'State'
+                            ? formatStateName(key)
+                            : key;
                         return (
                           <div key={key} className="flex justify-between items-center p-2 bg-gray-50 rounded-lg">
-                            <span className="text-gray-600 text-sm font-medium">{key || 'Unknown'}</span>
+                            <span className="text-gray-600 text-sm font-medium">{displayKey || 'Unknown'}</span>
                             <div className="text-right">
                               <span className="font-bold text-gray-900">{formatNumber(value as number)}</span>
                               <span className="text-xs text-gray-500 ml-2">({percentage}%)</span>
@@ -426,45 +417,72 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
         >
           <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
             <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
-            Engagement Level
+            General Vote History
           </h3>
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">High Engagement</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-green-500 to-emerald-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.engagement?.high || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-green-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.engagement?.high || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Medium Engagement</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.engagement?.medium || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-yellow-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.engagement?.medium || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Low Engagement</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-red-500 to-pink-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.engagement?.low || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-red-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.engagement?.low || 0)}</span>
-              </div>
-            </div>
+            {(() => {
+              // Get vote history data (use engagement key for backward compatibility or generalVoteHistory if available)
+              const voteHistory = audienceStats.generalVoteHistory || audienceStats.engagement || {};
+              const voteHistoryEntries = Object.entries(voteHistory);
+              
+              // Calculate total for percentages
+              const voteHistoryTotal = voteHistoryEntries.reduce((sum, [, value]) => sum + (typeof value === 'number' ? value : 0), 0);
+              
+              // Sort entries by vote count (0 of 4, 1 of 4, 2 of 4, 3 of 4, 4 of 4)
+              const sortedEntries = voteHistoryEntries.sort(([a], [b]) => {
+                const extractNumber = (str: string) => {
+                  const match = str.match(/^(\d+)\s+of\s+\d+$/);
+                  return match ? parseInt(match[1], 10) : -1;
+                };
+                const aNum = extractNumber(a);
+                const bNum = extractNumber(b);
+                if (aNum !== -1 && bNum !== -1) return aNum - bNum;
+                if (aNum !== -1) return -1;
+                if (bNum !== -1) return 1;
+                return a.localeCompare(b);
+              });
+              
+              // Color gradients for different vote counts
+              const getGradientClass = (key: string) => {
+                const num = key.match(/^(\d+)\s+of/) ? parseInt(key.match(/^(\d+)\s+of/)?.[1] || '0', 10) : 0;
+                if (num === 0) return 'from-red-500 to-pink-500'; // 0 of 4 - red
+                if (num === 1) return 'from-orange-500 to-red-500'; // 1 of 4 - orange
+                if (num === 2) return 'from-yellow-500 to-orange-500'; // 2 of 4 - yellow
+                if (num === 3) return 'from-green-400 to-yellow-500'; // 3 of 4 - yellow-green
+                return 'from-green-500 to-emerald-500'; // 4 of 4 - green
+              };
+              
+              const getTextColor = (key: string) => {
+                const num = key.match(/^(\d+)\s+of/) ? parseInt(key.match(/^(\d+)\s+of/)?.[1] || '0', 10) : 0;
+                if (num === 0) return 'text-red-600';
+                if (num === 1) return 'text-orange-600';
+                if (num === 2) return 'text-yellow-600';
+                if (num === 3) return 'text-green-600';
+                return 'text-green-600';
+              };
+              
+              return sortedEntries.map(([key, value]) => {
+                const count = typeof value === 'number' ? value : 0;
+                const percentage = voteHistoryTotal > 0 ? (count / voteHistoryTotal * 100) : 0;
+                
+                return (
+                  <div key={key} className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">{key}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`bg-gradient-to-r ${getGradientClass(key)} h-2 rounded-full transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className={`text-sm font-bold ${getTextColor(key)} whitespace-nowrap w-20 text-right`}>
+                        {formatNumber(count)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 
@@ -474,69 +492,72 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
         >
           <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
             <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
-            Media Consumption
+            Primary Vote History
           </h3>
           <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Social Media Heavy User</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.mediaConsumption?.socialmediaheavyuser || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-blue-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.mediaConsumption?.socialmediaheavyuser || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Facebook User</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-blue-400 to-blue-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.mediaConsumption?.socialmediauserfacebook || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-blue-500 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.mediaConsumption?.socialmediauserfacebook || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Instagram User</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-pink-500 to-purple-500 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.mediaConsumption?.socialmediauserinstagram || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-pink-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.mediaConsumption?.socialmediauserinstagram || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">X User</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.mediaConsumption?.socialmediauserx || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-gray-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.mediaConsumption?.socialmediauserx || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">YouTube User</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.mediaConsumption?.socialmediauseryoutube || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-red-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.mediaConsumption?.socialmediauseryoutube || 0)}</span>
-              </div>
-            </div>
+            {(() => {
+              // Get vote history data (use mediaConsumption key for backward compatibility or primaryVoteHistory if available)
+              const voteHistory = audienceStats.primaryVoteHistory || audienceStats.mediaConsumption || {};
+              const voteHistoryEntries = Object.entries(voteHistory);
+              
+              // Calculate total for percentages
+              const voteHistoryTotal = voteHistoryEntries.reduce((sum, [, value]) => sum + (typeof value === 'number' ? value : 0), 0);
+              
+              // Sort entries by vote count (0 of 4, 1 of 4, 2 of 4, 3 of 4, 4 of 4)
+              const sortedEntries = voteHistoryEntries.sort(([a], [b]) => {
+                const extractNumber = (str: string) => {
+                  const match = str.match(/^(\d+)\s+of\s+\d+$/);
+                  return match ? parseInt(match[1], 10) : -1;
+                };
+                const aNum = extractNumber(a);
+                const bNum = extractNumber(b);
+                if (aNum !== -1 && bNum !== -1) return aNum - bNum;
+                if (aNum !== -1) return -1;
+                if (bNum !== -1) return 1;
+                return a.localeCompare(b);
+              });
+              
+              // Color gradients for different vote counts
+              const getGradientClass = (key: string) => {
+                const num = key.match(/^(\d+)\s+of/) ? parseInt(key.match(/^(\d+)\s+of/)?.[1] || '0', 10) : 0;
+                if (num === 0) return 'from-red-500 to-pink-500'; // 0 of 4 - red
+                if (num === 1) return 'from-orange-500 to-red-500'; // 1 of 4 - orange
+                if (num === 2) return 'from-yellow-500 to-orange-500'; // 2 of 4 - yellow
+                if (num === 3) return 'from-green-400 to-yellow-500'; // 3 of 4 - yellow-green
+                return 'from-green-500 to-emerald-500'; // 4 of 4 - green
+              };
+              
+              const getTextColor = (key: string) => {
+                const num = key.match(/^(\d+)\s+of/) ? parseInt(key.match(/^(\d+)\s+of/)?.[1] || '0', 10) : 0;
+                if (num === 0) return 'text-red-600';
+                if (num === 1) return 'text-orange-600';
+                if (num === 2) return 'text-yellow-600';
+                if (num === 3) return 'text-green-600';
+                return 'text-green-600';
+              };
+              
+              return sortedEntries.map(([key, value]) => {
+                const count = typeof value === 'number' ? value : 0;
+                const percentage = voteHistoryTotal > 0 ? (count / voteHistoryTotal * 100) : 0;
+                
+                return (
+                  <div key={key} className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">{key}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`bg-gradient-to-r ${getGradientClass(key)} h-2 rounded-full transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className={`text-sm font-bold ${getTextColor(key)} whitespace-nowrap w-20 text-right`}>
+                        {formatNumber(count)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
           </div>
         </div>
 

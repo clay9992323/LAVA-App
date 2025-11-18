@@ -111,12 +111,18 @@ export interface GeographicBreakdown {
 
 export interface AudienceStats {
   totalCount: number;
+  hasCellPhoneCount?: number;
+  householdCount?: number;
   demographics: DemographicsBreakdown;
   geography: GeographicBreakdown;
-  engagement: {
-    high: number;
-    medium: number;
-    low: number;
+  engagement?: {
+    high?: number;
+    medium?: number;
+    low?: number;
+    [key: string]: number | undefined;
+  };
+  generalVoteHistory?: {
+    [key: string]: number;
   };
   political: {
     democrat: number;
@@ -124,12 +130,16 @@ export interface AudienceStats {
     independent: number;
     swing: number;
   };
-  mediaConsumption: {
-    socialmediaheavyuser: number;
-    socialmediauserfacebook: number;
-    socialmediauserinstagram: number;
-    socialmediauserx: number;
-    socialmediauseryoutube: number;
+  mediaConsumption?: {
+    socialmediaheavyuser?: number;
+    socialmediauserfacebook?: number;
+    socialmediauserinstagram?: number;
+    socialmediauserx?: number;
+    socialmediauseryoutube?: number;
+    [key: string]: number | undefined;
+  };
+  primaryVoteHistory?: {
+    [key: string]: number;
   };
   universe: {
     [key: string]: number;

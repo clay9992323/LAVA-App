@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef } from 'react';
-import { X, Filter, ChevronDown, Check, Search } from 'lucide-react';
+import { X, Filter, ChevronDown, Check, Search, Shuffle } from 'lucide-react';
 import { FilterGroup, FilterCondition, AVAILABLE_FILTER_FIELDS, AudienceStats } from '@/types/audience';
 
 interface FilterBuilderProps {
@@ -153,19 +153,29 @@ export function FilterBuilder({ onFiltersChange, isDataLoaded, audienceStats, ha
             </div>
           </div>
           <div className="flex items-center space-x-2">
-            {selectedUniverses.length > 1 && (
-              <div className="flex items-center space-x-1.5">
-                <span className="text-xs text-gray-700 font-semibold">Logic:</span>
-                <select
-                  value={logicOperator}
-                  onChange={(e) => setLogicOperator(e.target.value as 'AND' | 'OR')}
-                  className="px-2 py-1 text-xs font-semibold border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-orange-500 bg-white transition-all"
-                >
-                  <option value="OR">OR</option>
-                  <option value="AND">AND</option>
-                </select>
-              </div>
-            )}
+            <div className="flex items-center rounded-full border-2 border-orange-400 bg-white overflow-hidden shadow-sm focus-within:ring-2 focus-within:ring-orange-500 transition-all">
+              {(['OR', 'AND'] as Array<'OR' | 'AND'>).map(option => {
+                const isActive = logicOperator === option;
+                const isInteractive = selectedUniverses.length > 1;
+                return (
+                  <button
+                    key={option}
+                    type="button"
+                    onClick={() => isInteractive && setLogicOperator(option)}
+                    className={`px-3 py-1 text-xs font-bold uppercase tracking-wide transition-all duration-200 ${
+                      isActive
+                        ? 'bg-gradient-to-r from-pink-500 to-orange-500 text-white shadow-inner'
+                        : 'text-gray-600'
+                    } ${isInteractive ? 'hover:text-gray-900 hover:bg-orange-50' : 'opacity-50 cursor-not-allowed'}`}
+                    aria-pressed={isActive}
+                    aria-label={`Use ${option} logic`}
+                    disabled={!isInteractive}
+                  >
+                    {option}
+                  </button>
+                );
+              })}
+            </div>
             {selectedUniverses.length > 0 && (
               <button
                 onClick={clearAllFilters}

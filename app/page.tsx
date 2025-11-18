@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FilterBuilder } from '@/components/FilterBuilder';
 import { PreviewPanel } from '@/components/PreviewPanel';
-import { VisualizationPanel } from '@/components/VisualizationPanel';
+// import { VisualizationPanel } from '@/components/VisualizationPanel';
 import { Header } from '@/components/Header';
 import { GeographicSelector } from '@/components/GeographicSelector';
 import { GeoWizard } from '@/components/GeoWizard';
@@ -292,6 +292,18 @@ export default function Dashboard() {
             geoOnlyResult = await geoOnlyResponse.json();
             geographicOnlyCount = geoOnlyResult.combinedCounts['total'] || 0;
             console.log(`🗺️ Geographic-only count (WHERE - denominator): ${geographicOnlyCount.toLocaleString()}`);
+            
+            // Extract hasCellPhoneCount and householdCount from geoOnlyResult
+            if (geoOnlyResult.combinedCounts) {
+              if (geoOnlyResult.combinedCounts['hasCellPhoneCount'] !== undefined) {
+                filteredStats.hasCellPhoneCount = geoOnlyResult.combinedCounts['hasCellPhoneCount'];
+                console.log('✅ Set filteredStats.hasCellPhoneCount from geoOnlyResult:', filteredStats.hasCellPhoneCount);
+              }
+              if (geoOnlyResult.combinedCounts['householdCount'] !== undefined) {
+                filteredStats.householdCount = geoOnlyResult.combinedCounts['householdCount'];
+                console.log('✅ Set filteredStats.householdCount from geoOnlyResult:', filteredStats.householdCount);
+              }
+            }
           }
           
           // STEP 2: Fetch geographic + demographic for numerator (the "WHO")
@@ -318,6 +330,18 @@ export default function Dashboard() {
               console.log(`👥 Geographic+Demographic count (WHO - numerator): ${totalCount.toLocaleString()}`);
               console.log(`📊 Header will show: ${totalCount.toLocaleString()} / ${geographicOnlyCount.toLocaleString()}`);
               
+              // Extract hasCellPhoneCount and householdCount from result
+              if (result.combinedCounts) {
+                if (result.combinedCounts['hasCellPhoneCount'] !== undefined) {
+                  filteredStats.hasCellPhoneCount = result.combinedCounts['hasCellPhoneCount'];
+                  console.log('✅ Set filteredStats.hasCellPhoneCount from result:', filteredStats.hasCellPhoneCount);
+                }
+                if (result.combinedCounts['householdCount'] !== undefined) {
+                  filteredStats.householdCount = result.combinedCounts['householdCount'];
+                  console.log('✅ Set filteredStats.householdCount from result:', filteredStats.householdCount);
+                }
+              }
+              
               if (result.filteredBreakdowns) {
                 filteredStats.demographics = result.filteredBreakdowns.demographics;
                 filteredStats.geography = result.filteredBreakdowns.geography;
@@ -341,8 +365,20 @@ export default function Dashboard() {
                 hasCombinedCounts: !!geoOnlyResult.combinedCounts,
                 hasFilteredBreakdowns: !!geoOnlyResult.filteredBreakdowns,
                 totalCount,
+                hasCellPhoneCount: geoOnlyResult.combinedCounts?.['hasCellPhoneCount'],
+                householdCount: geoOnlyResult.combinedCounts?.['householdCount'],
                 demographicsKeys: geoOnlyResult.filteredBreakdowns?.demographics ? Object.keys(geoOnlyResult.filteredBreakdowns.demographics) : 'NONE'
               });
+              
+              // Ensure counts are preserved (they should already be set from earlier extraction)
+              if (geoOnlyResult.combinedCounts) {
+                if (geoOnlyResult.combinedCounts['hasCellPhoneCount'] !== undefined && !filteredStats.hasCellPhoneCount) {
+                  filteredStats.hasCellPhoneCount = geoOnlyResult.combinedCounts['hasCellPhoneCount'];
+                }
+                if (geoOnlyResult.combinedCounts['householdCount'] !== undefined && !filteredStats.householdCount) {
+                  filteredStats.householdCount = geoOnlyResult.combinedCounts['householdCount'];
+                }
+              }
               
               if (geoOnlyResult.filteredBreakdowns) {
                 filteredStats.demographics = geoOnlyResult.filteredBreakdowns.demographics;
@@ -352,6 +388,11 @@ export default function Dashboard() {
                 filteredStats.mediaConsumption = geoOnlyResult.filteredBreakdowns.mediaConsumption;
                 
                 console.log(`✅ Geographic-only filtering complete: ${totalCount.toLocaleString()}`);
+                console.log('📊 filteredStats counts:', {
+                  totalCount: filteredStats.totalCount,
+                  hasCellPhoneCount: filteredStats.hasCellPhoneCount,
+                  householdCount: filteredStats.householdCount
+                });
                 console.log('📊 filteredStats.demographics:', filteredStats.demographics);
                 console.log('📊 filteredStats.demographics.gender:', filteredStats.demographics?.gender);
               } else {
@@ -410,6 +451,9 @@ export default function Dashboard() {
               const geoOnlyResult = await geoOnlyResponse.json();
               geographicOnlyCount = geoOnlyResult.combinedCounts['total'] || 0;
               console.log(`🗺️ Geographic-only count (WHERE - denominator): ${geographicOnlyCount.toLocaleString()}`);
+              
+              // Note: For universe filters, we use counts from the filtered result, not geoOnlyResult
+              // geoOnlyResult is only for the denominator calculation
             }
           }
           
@@ -422,6 +466,25 @@ export default function Dashboard() {
           // Use the total count from the backend (which handles AND/OR logic correctly)
           const totalCount = combinedUniverseCounts['total'] || 0;
           console.log(`📊 Total count from backend (${currentFilters?.operator || 'AND'} logic): ${totalCount}`);
+          
+          // Extract hasCellPhoneCount and householdCount from API response
+          console.log('📱 Frontend - combinedUniverseCounts keys:', Object.keys(combinedUniverseCounts));
+          console.log('📱 Frontend - hasCellPhoneCount value:', combinedUniverseCounts['hasCellPhoneCount']);
+          console.log('🏠 Frontend - householdCount value:', combinedUniverseCounts['householdCount']);
+          
+          if (combinedUniverseCounts['hasCellPhoneCount'] !== undefined) {
+            filteredStats.hasCellPhoneCount = combinedUniverseCounts['hasCellPhoneCount'];
+            console.log('✅ Set filteredStats.hasCellPhoneCount to:', filteredStats.hasCellPhoneCount);
+          } else {
+            console.log('❌ hasCellPhoneCount is undefined in combinedUniverseCounts');
+          }
+          
+          if (combinedUniverseCounts['householdCount'] !== undefined) {
+            filteredStats.householdCount = combinedUniverseCounts['householdCount'];
+            console.log('✅ Set filteredStats.householdCount to:', filteredStats.householdCount);
+          } else {
+            console.log('❌ householdCount is undefined in combinedUniverseCounts');
+          }
           
           // Log individual counts for reference
           if (currentFilters?.conditions && currentFilters.conditions.length > 0) {
@@ -454,6 +517,13 @@ export default function Dashboard() {
               console.log('📊 New DMA data entries:', Object.entries(result.filteredBreakdowns.geography?.dma || {}));
             }
           }
+          
+          // Log final filteredStats before returning
+          console.log('📊 Final filteredStats before return:', {
+            totalCount: filteredStats.totalCount,
+            hasCellPhoneCount: filteredStats.hasCellPhoneCount,
+            householdCount: filteredStats.householdCount
+          });
           
           return { filteredStats, geographicOnlyCount };
         } else {
@@ -613,6 +683,8 @@ export default function Dashboard() {
             if (result && result.filteredStats) {
               console.log('🎯 Setting audienceStats with filtered data:', {
                 totalCount: result.filteredStats.totalCount,
+                hasCellPhoneCount: result.filteredStats.hasCellPhoneCount,
+                householdCount: result.filteredStats.householdCount,
                 demographics: result.filteredStats.demographics,
                 gender: result.filteredStats.demographics?.gender
               });
@@ -835,6 +907,14 @@ export default function Dashboard() {
       if (response.ok) {
         const result = await response.json();
         const updated = { ...originalAudienceStats } as any;
+        if (result.combinedCounts) {
+          if (result.combinedCounts['hasCellPhoneCount'] !== undefined) {
+            updated.hasCellPhoneCount = result.combinedCounts['hasCellPhoneCount'];
+          }
+          if (result.combinedCounts['householdCount'] !== undefined) {
+            updated.householdCount = result.combinedCounts['householdCount'];
+          }
+        }
         if (result.filteredBreakdowns) {
           updated.demographics = result.filteredBreakdowns.demographics;
           updated.geography = result.filteredBreakdowns.geography;
@@ -1337,6 +1417,22 @@ export default function Dashboard() {
         />
       )}
       
+      {/* Filter Loading Overlay - Show whenever filtering, regardless of wizard state */}
+      {isFiltering && (
+        <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm z-[9999] flex items-center justify-center">
+          <div className="text-center space-y-4 p-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 max-w-sm mx-4">
+            <div className="relative mx-auto w-10 h-10">
+              <div className="absolute inset-0 rounded-full border-2 border-purple-200/50"></div>
+              <div className="absolute inset-0 rounded-full border-2 border-purple-600 border-t-transparent animate-spin"></div>
+            </div>
+            <div className="space-y-1">
+              <h3 className="text-base font-semibold text-gray-900">Applying Filters</h3>
+              <p className="text-xs text-gray-600">Processing audience data...</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className={`mx-auto px-4 py-8 ${isStateExpanded ? 'max-w-5xl' : 'container'}`} style={{ overflow: 'visible' }}>
         <div className="space-y-8" style={{ overflow: 'visible' }}>
 
@@ -1360,21 +1456,6 @@ export default function Dashboard() {
           {/* Main Content Area - Show when geography is confirmed and NOT editing */}
           {!isStateExpanded && confirmedState && (
             <>
-              {/* Filter Loading Overlay */}
-              {isFiltering && (
-                <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm z-[9999] flex items-center justify-center">
-                  <div className="text-center space-y-4 p-6 bg-white/95 backdrop-blur-sm rounded-2xl shadow-xl border border-white/20 max-w-sm mx-4">
-                    <div className="relative mx-auto w-10 h-10">
-                      <div className="absolute inset-0 rounded-full border-2 border-purple-200/50"></div>
-                      <div className="absolute inset-0 rounded-full border-2 border-purple-600 border-t-transparent animate-spin"></div>
-                    </div>
-                    <div className="space-y-1">
-                      <h3 className="text-base font-semibold text-gray-900">Applying Filters</h3>
-                      <p className="text-xs text-gray-600">Processing audience data...</p>
-                    </div>
-                  </div>
-                </div>
-              )}
 
               {/* Universe Filters - Full Width at Top */}
               <div className="overflow-visible">
@@ -1421,12 +1502,13 @@ export default function Dashboard() {
               </div>
 
               {/* Visualizations - Full Width Below */}
-              <div className="mt-6 lg:mt-8">
+              {/* Temporarily hidden until ready to fix */}
+              {/* <div className="mt-6 lg:mt-8">
                 <VisualizationPanel
                   audienceStats={audienceStats}
                   filteredData={filteredData}
                 />
-              </div>
+              </div> */}
             </>
           )}
         </div>

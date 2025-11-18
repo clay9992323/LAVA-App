@@ -20,42 +20,38 @@ function cleanEnvVar(value: string | undefined): string | undefined {
   return value.replace(/^["'](.*)["']$/, '$1');
 }
 
+// Logging configuration - enable verbose logging in development only
+const ENABLE_VERBOSE_LOGGING = process.env.NODE_ENV === 'development' || process.env.ENABLE_API_LOGGING === 'true';
+const ENABLE_DETAILED_LOGGING = process.env.NODE_ENV === 'development' && process.env.ENABLE_DETAILED_API_LOGGING === 'true';
+
 // API Configuration
 const API_CONFIG: ApiConfig = {
   baseUrl: cleanEnvVar(process.env.API_BASE_URL) || cleanEnvVar(process.env.NEXT_PUBLIC_API_BASE_URL) || 'https://causewayappsapi-f9c7fmb8e5emhzbg.southcentralus-01.azurewebsites.net',
   apiKey: cleanEnvVar(process.env.API_KEY) || cleanEnvVar(process.env.NEXT_PUBLIC_API_KEY) || '7i$6OdzDBQVIXJ2!',
-  timeout: 60000
+  timeout: 120000
 };
 
-// Debug: Log API key on startup (remove after debugging)
-console.log('🔑 API Key from env:', {
-  rawAPIKey: process.env.API_KEY,
-  rawPublicKey: process.env.NEXT_PUBLIC_API_KEY,
-  cleanedKey: API_CONFIG.apiKey,
-  fullLength: API_CONFIG.apiKey?.length,
-  firstThree: API_CONFIG.apiKey?.substring(0, 3),
-  lastThree: API_CONFIG.apiKey?.substring(API_CONFIG.apiKey.length - 3)
-});
-
-// Utility function for logging API requests
+// Utility function for logging API requests (only in development or when enabled)
 function logRequest(method: string, url: string, body?: any): void {
+  if (!ENABLE_VERBOSE_LOGGING) return;
+  
   const timestamp = new Date().toISOString();
-  console.log('\n' + '─'.repeat(80));
   console.log(`📡 API REQUEST: ${method} ${url}`);
-  console.log('─'.repeat(80));
-  if (body) {
+  if (ENABLE_DETAILED_LOGGING && body) {
     console.log('Request Body:', JSON.stringify(body, null, 2));
+  } else if (body) {
+    console.log('Request Body:', typeof body === 'object' ? Object.keys(body).join(', ') : 'present');
   }
-  console.log('─'.repeat(80));
   console.log(`🕐 Started at: ${timestamp}`);
 }
 
-// Utility function for logging request time
+// Utility function for logging request time (only in development or when enabled)
 function logRequestTime(startTime: number, method: string, url: string): void {
+  if (!ENABLE_VERBOSE_LOGGING) return;
+  
   const duration = Date.now() - startTime;
   const durationInSeconds = (duration / 1000).toFixed(2);
   console.log(`⏱️  ${method} ${url} completed in ${durationInSeconds}s`);
-  console.log('─'.repeat(80) + '\n');
 }
 
 class ApiService {
@@ -114,25 +110,20 @@ class ApiService {
       const data = await response.json();
       logRequestTime(startTime, method, url);
       
-      // Log all API responses for debugging
-      console.log('\n' + '═'.repeat(80));
-      console.log('📥 API RESPONSE DATA');
-      console.log('═'.repeat(80));
-      console.log('Endpoint:', path);
-      console.log('Status:', response.status);
-      if (Array.isArray(data)) {
-        console.log(`Response Type: Array with ${data.length} items`);
-        if (data.length > 0) {
-          console.log('First item sample:', JSON.stringify(data[0], null, 2));
-          if (data.length > 1 && data.length <= 5) {
-            console.log('Second item sample:', JSON.stringify(data[1], null, 2));
+      // Log API responses only in detailed logging mode (development with flag)
+      if (ENABLE_DETAILED_LOGGING) {
+        console.log('📥 API RESPONSE:', path, `Status: ${response.status}`);
+        if (Array.isArray(data)) {
+          console.log(`Response Type: Array with ${data.length} items`);
+          if (data.length > 0) {
+            // Only log keys/type info, not full JSON
+            console.log('First item keys:', Object.keys(data[0] || {}).slice(0, 10).join(', '));
           }
+        } else if (typeof data === 'object' && data !== null) {
+          console.log('Response Type: Object');
+          console.log('Response keys:', Object.keys(data).slice(0, 15).join(', '));
         }
-      } else {
-        console.log('Response Type: Object');
-        console.log('Full Response:', JSON.stringify(data, null, 2));
       }
-      console.log('═'.repeat(80) + '\n');
       
       return data as T;
     } catch (error) {
@@ -236,29 +227,22 @@ class ApiService {
 
   // Get demographic breakdown for a geography
   async getDemographicBreakdown(geoId: number): Promise<GeoDemographicsResponse> {
-    console.log('\n' + '='.repeat(80));
-    console.log('🧭 DEMOGRAPHIC API REQUEST');
-    console.log('Endpoint: /api/GeoDemoCount/geo/:geoId');
-    console.log('Params:', { geoId });
-    console.log('='.repeat(80));
+    if (ENABLE_VERBOSE_LOGGING) {
+      console.log('🧭 DEMOGRAPHIC API REQUEST: /api/GeoDemoCount/geo/', geoId);
+    }
 
     const resp = await this.request<GeoDemographicsResponse>('GET', `/api/GeoDemoCount/geo/${geoId}`);
 
-    // Concise response summary
-    const demo = resp?.demographics || {} as Record<string, any>;
-    const categories = Object.keys(demo);
-    console.log('\n' + '-'.repeat(80));
-    console.log('📊 DEMOGRAPHIC API RESPONSE SUMMARY');
-    console.log('Categories:', categories);
-    categories.forEach(cat => {
-      const values = Array.isArray(demo[cat]) ? demo[cat] : [];
-      const sample = values.slice(0, 5);
-      console.log(`  • ${cat}: ${values.length} items`);
-      if (sample.length > 0) {
-        console.log('    First up to 5:', JSON.stringify(sample, null, 2));
-      }
-    });
-    console.log('-'.repeat(80) + '\n');
+    // Log response summary only in detailed logging mode
+    if (ENABLE_DETAILED_LOGGING) {
+      const demo = resp?.demographics || {} as Record<string, any>;
+      const categories = Object.keys(demo);
+      console.log('📊 DEMOGRAPHIC API RESPONSE - Categories:', categories.join(', '));
+      categories.forEach(cat => {
+        const values = Array.isArray(demo[cat]) ? demo[cat] : [];
+        console.log(`  • ${cat}: ${values.length} items`);
+      });
+    }
 
     return resp;
   }

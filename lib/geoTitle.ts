@@ -25,6 +25,50 @@ const sortDistrictNumbers = (districts: string[]): string[] => {
   });
 };
 
+const WORD_DELIMITER_REGEX = /([\s\-\/&]+)/;
+const LOWERCASE_EXCEPTIONS = new Set(['of', 'and', 'the', 'for', 'in']);
+
+export function formatCountyName(input: string): string {
+  if (!input) return input;
+
+  const cleaned = input.replace(/_/g, ' ').trim();
+  if (!cleaned) return cleaned;
+
+  const segments = cleaned
+    .toLowerCase()
+    .split(WORD_DELIMITER_REGEX)
+    .filter(segment => segment !== undefined && segment !== null);
+
+  let wordIndex = 0;
+
+  const formatted = segments
+    .map(segment => {
+      const trimmed = segment.trim();
+      if (WORD_DELIMITER_REGEX.test(segment)) {
+        return segment;
+      }
+
+      wordIndex += 1;
+
+      if (/^[a-z]{1,2}$/.test(trimmed)) {
+        return segment.replace(trimmed, trimmed.toUpperCase());
+      }
+
+      if (wordIndex > 1 && LOWERCASE_EXCEPTIONS.has(trimmed)) {
+        return segment.replace(trimmed, trimmed);
+      }
+
+      const capitalized =
+        trimmed.charAt(0).toUpperCase() +
+        trimmed.slice(1);
+
+      return segment.replace(trimmed, capitalized);
+    })
+    .join('');
+
+  return formatted.replace(/\s+/g, ' ').trim();
+}
+
 const stateFullNames: Record<string, string> = {
   AL: 'Alabama',
   AK: 'Alaska',
@@ -80,6 +124,12 @@ const stateFullNames: Record<string, string> = {
   PR: 'Puerto Rico',
 };
 
+export function formatStateName(value: string): string {
+  if (!value) return value;
+  const normalized = value.toUpperCase();
+  return stateFullNames[normalized] || value;
+}
+
 export function formatGeographicTitle(
   geographicSelections: GeographicSelections | null | undefined,
   options?: { isNational?: boolean; fallback?: string }
@@ -114,7 +164,12 @@ export function formatGeographicTitle(
   const refinements: string[] = [];
 
   if (county.length > 0) {
-    refinements.push([...county].sort().join(', '));
+    refinements.push(
+      [...county]
+        .sort()
+        .map(formatCountyName)
+        .join(', ')
+    );
   }
 
   if (congressional.length > 0) {

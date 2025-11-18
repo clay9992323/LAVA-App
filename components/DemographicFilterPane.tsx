@@ -93,6 +93,15 @@ export function DemographicFilterPane({
     education: currentSelections?.education || [],
   });
 
+  // Helper function to filter out Unknown/Other-Unknown entries (except for ethnicity)
+  const filterUnknownEntries = (keys: string[], includeUnknown: boolean): string[] => {
+    if (includeUnknown) return keys; // Keep all for ethnicity
+    return keys.filter(key => {
+      const lower = key.toLowerCase().trim();
+      return lower !== 'unknown' && lower !== 'other/unknown' && lower !== 'other-unknown';
+    });
+  };
+
   // Get options from audience stats
   const demographicOptions = useMemo(() => {
     if (!audienceStats?.demographics) {
@@ -106,11 +115,11 @@ export function DemographicFilterPane({
     }
 
     return {
-      gender: Object.keys(audienceStats.demographics.gender || {}),
-      age: Object.keys(audienceStats.demographics.age || {}),
-      ethnicity: Object.keys(audienceStats.demographics.ethnicity || {}),
-      income: Object.keys(audienceStats.demographics.income || {}),
-      education: Object.keys(audienceStats.demographics.education || {}),
+      gender: filterUnknownEntries(Object.keys(audienceStats.demographics.gender || {}), false),
+      age: filterUnknownEntries(Object.keys(audienceStats.demographics.age || {}), false),
+      ethnicity: filterUnknownEntries(Object.keys(audienceStats.demographics.ethnicity || {}), true),
+      income: filterUnknownEntries(Object.keys(audienceStats.demographics.income || {}), false),
+      education: filterUnknownEntries(Object.keys(audienceStats.demographics.education || {}), false),
     };
   }, [audienceStats]);
 

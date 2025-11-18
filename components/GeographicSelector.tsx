@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { MapPin, Check, X, ChevronDown } from 'lucide-react';
 import { getMappedOptions, hasMappings } from '@/lib/dataMapping';
+import { formatCountyName, formatStateName } from '@/lib/geoTitle';
 
 interface GeographicSelectorProps {
   onGeographicChange: (geographic: GeographicSelections) => void;
@@ -453,12 +454,12 @@ export function GeographicSelector({ onGeographicChange, isDataLoaded, audienceS
     // Use the filtered geographic options
     cache['State'] = Object.keys(geographicOptions.states).map(value => ({
       value,
-      label: value
+      label: formatStateName(value)
     }));
 
     cache['County'] = Object.keys(geographicOptions.counties).map(value => ({
       value,
-      label: value
+      label: formatCountyName(value)
     }));
 
     cache['DMA'] = Object.keys(geographicOptions.dmas).map(value => ({
