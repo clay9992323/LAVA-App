@@ -3,6 +3,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import { FilterBuilder } from '@/components/FilterBuilder';
 import { PreviewPanel } from '@/components/PreviewPanel';
+import { GridDataPanel } from '@/components/GridDataPanel';
 // import { VisualizationPanel } from '@/components/VisualizationPanel';
 import { Header } from '@/components/Header';
 import { GeographicSelector } from '@/components/GeographicSelector';
@@ -124,7 +125,7 @@ export default function Dashboard() {
     return () => {
       isMounted = false;
     };
-  }, [isDataLoaded]);
+  }, []);
 
   // Client-side filtering function - memoized to prevent re-renders
   const applyClientSideFilters = useCallback(async (originalStats: any, geography: any, demographics: any, currentFilters: any) => {
@@ -702,47 +703,14 @@ export default function Dashboard() {
         };
         applyFilters();
       } else {
-        // No filters: fetch national breakdowns via combined-filters to trigger server-side demographics
-        const fetchNational = async () => {
-          try {
-            // Reset geographic-only count since we're on National view
-            setGeographicOnlyCount(0);
-            
-            const response = await fetch('/api/combined-filters', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                universeFields: [],
-                geographicFilters: {},
-                demographicFilters: {},
-                requestedLevels: ['state', 'county', 'dma']
-              })
-            });
-            if (response.ok) {
-              const result = await response.json();
-              const updated = { ...originalAudienceStats } as any;
-              if (result.filteredBreakdowns) {
-                updated.demographics = result.filteredBreakdowns.demographics;
-                updated.geography = result.filteredBreakdowns.geography;
-                updated.engagement = result.filteredBreakdowns.engagement;
-                updated.political = result.filteredBreakdowns.political;
-                updated.mediaConsumption = result.filteredBreakdowns.mediaConsumption;
-              }
-              // For National view (no filters), keep the original totalCount to ensure 100% percentage
-              // Don't override with API count as it should match the original
-              setAudienceStats(updated);
-            } else {
-              // Fallback to original if API fails
-              setAudienceStats(originalAudienceStats);
-            }
-          } catch {
-            setAudienceStats(originalAudienceStats);
-          }
-        };
-        fetchNational();
+        // No filters: use original stats (skip expensive national Audience/count call)
+        // Demographic counts, vote history, and political data will show as empty/zeros
+        // These can be loaded lazily when user applies filters
+        setGeographicOnlyCount(0);
+        setAudienceStats(originalAudienceStats);
       }
     }
-  }, [isDataLoaded, geographicSelections, demographicSelections, currentFilters, applyClientSideFilters, originalAudienceStats]);
+  }, [isDataLoaded, geographicSelections, demographicSelections, currentFilters, applyClientSideFilters]);
 
   const handleFiltersChange = useCallback((filters: FilterGroup | null) => {
     setPendingFilters(filters);
@@ -1499,6 +1467,11 @@ export default function Dashboard() {
                     hideHeader={isExportingPDF}
                   />
                 </div>
+              </div>
+
+              {/* Grid Data Panel - Full Width Below Preview */}
+              <div className="mt-6 lg:mt-8">
+                <GridDataPanel />
               </div>
 
               {/* Visualizations - Full Width Below */}

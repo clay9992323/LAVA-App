@@ -25,10 +25,13 @@ const ENABLE_VERBOSE_LOGGING = process.env.NODE_ENV === 'development' || process
 const ENABLE_DETAILED_LOGGING = process.env.NODE_ENV === 'development' && process.env.ENABLE_DETAILED_API_LOGGING === 'true';
 
 // API Configuration
+// Timeout: 5 minutes (500000ms) - increased from 2 minutes to handle complex queries
+const DEFAULT_TIMEOUT = 700000;
+
 const API_CONFIG: ApiConfig = {
   baseUrl: cleanEnvVar(process.env.API_BASE_URL) || cleanEnvVar(process.env.NEXT_PUBLIC_API_BASE_URL) || 'https://causewayappsapi-f9c7fmb8e5emhzbg.southcentralus-01.azurewebsites.net',
   apiKey: cleanEnvVar(process.env.API_KEY) || cleanEnvVar(process.env.NEXT_PUBLIC_API_KEY) || '7i$6OdzDBQVIXJ2!',
-  timeout: 120000
+  timeout: DEFAULT_TIMEOUT
 };
 
 // Utility function for logging API requests (only in development or when enabled)
@@ -37,10 +40,9 @@ function logRequest(method: string, url: string, body?: any): void {
   
   const timestamp = new Date().toISOString();
   console.log(`📡 API REQUEST: ${method} ${url}`);
-  if (ENABLE_DETAILED_LOGGING && body) {
+  if (body) {
+    // Always log full request body for debugging
     console.log('Request Body:', JSON.stringify(body, null, 2));
-  } else if (body) {
-    console.log('Request Body:', typeof body === 'object' ? Object.keys(body).join(', ') : 'present');
   }
   console.log(`🕐 Started at: ${timestamp}`);
 }
@@ -62,7 +64,7 @@ class ApiService {
   constructor(config: ApiConfig = API_CONFIG) {
     this.baseUrl = config.baseUrl;
     this.apiKey = config.apiKey;
-    this.timeout = config.timeout || 60000;
+    this.timeout = config.timeout || DEFAULT_TIMEOUT;
   }
 
   // Generic HTTP request method
@@ -104,7 +106,50 @@ class ApiService {
 
       if (!response.ok) {
         const errorText = await response.text();
-        throw new Error(`API Error (${response.status}): ${errorText}`);
+        
+        // Check if it's an HTML error page (common with server errors)
+        const isHtmlError = errorText.includes('<!DOCTYPE') || errorText.includes('<html');
+        
+        // Handle server errors (500, 502, 503, 504) with better error messages
+        if (response.status === 500 || response.status === 502 || response.status === 503 || response.status === 504) {
+          if (isHtmlError) {
+            // Check for specific timeout errors in HTML
+            if (errorText.includes('timed out') || errorText.includes('timeout') || errorText.includes('request timed out')) {
+              throw new Error(
+                `API Server Timeout Error (${response.status}): The backend API server timed out while processing your request. ` +
+                `This usually happens with complex queries or when the server is overloaded. ` +
+                `The server has a timeout limit of approximately 230 seconds. ` +
+                `Please try again or simplify your query. ` +
+                `[${method} ${path}]`
+              );
+            }
+            throw new Error(
+              `API Server Error (${response.status}): The backend API server is currently unavailable or experiencing issues. ` +
+              `Please try again in a few moments. ` +
+              `[${method} ${path}]`
+            );
+          }
+          
+          // Non-HTML error messages
+          if (errorText.toLowerCase().includes('timeout') || errorText.toLowerCase().includes('timed out')) {
+            throw new Error(
+              `API Server Timeout Error (${response.status}): The backend API server timed out while processing your request. ` +
+              `This usually happens with complex queries or when the server is overloaded. ` +
+              `[${method} ${path}]: ${errorText.substring(0, 200)}`
+            );
+          }
+          
+          throw new Error(
+            `API Server Error (${response.status}): The backend API server is currently unavailable. ` +
+            `[${method} ${path}]: ${errorText.substring(0, 200)}`
+          );
+        }
+        
+        // For other errors, include the status and truncated error text
+        const truncatedError = errorText.length > 500 
+          ? errorText.substring(0, 500) + '...'
+          : errorText;
+        throw new Error(`API Error (${response.status}): ${truncatedError}`);
       }
 
       const data = await response.json();
@@ -129,7 +174,16 @@ class ApiService {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error(`API request timeout after ${this.timeout}ms`);
+        const elapsed = Date.now() - startTime;
+        throw new Error(
+          `API request timeout after ${elapsed}ms (timeout limit: ${options?.timeout || this.timeout}ms). ` +
+          `The API server may be overloaded or unresponsive. ` +
+          `[${method} ${path}]`
+        );
+      }
+      // Re-throw API errors as-is (they already have good messages)
+      if (error instanceof Error && (error.message.includes('API Error') || error.message.includes('API Server Error'))) {
+        throw error;
       }
       console.error('API request failed:', error);
       throw error;

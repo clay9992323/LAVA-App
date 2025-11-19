@@ -97,11 +97,10 @@ function getCellPhoneCount(response?: AudienceCountResponse | Record<string, any
   const possibleKeys = ['hasCellPhoneCount', 'HasCellPhoneCount', 'hasCellPhone', 'HasCellPhone'];
   
   // Check primaryGeo.hasCellPhoneCount first (most common location)
-  if ('primaryGeo' in response && response.primaryGeo && typeof response.primaryGeo === 'object') {
-    const primaryGeo = response.primaryGeo as Record<string, any>;
+  if (response.primaryGeo && typeof response.primaryGeo === 'object') {
     for (const key of possibleKeys) {
-      if (key in primaryGeo) {
-        const count = primaryGeo[key];
+      if (key in response.primaryGeo) {
+        const count = (response.primaryGeo as any)[key];
         if (count !== null && count !== undefined) {
           const num = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : Number(count);
           if (Number.isFinite(num) && num > 0) return num;
@@ -131,11 +130,10 @@ function getHouseholdCount(response?: AudienceCountResponse | Record<string, any
   const possibleKeys = ['householdCount', 'HouseholdCount', 'household', 'Household'];
   
   // Check primaryGeo.householdCount first (most common location)
-  if ('primaryGeo' in response && response.primaryGeo && typeof response.primaryGeo === 'object') {
-    const primaryGeo = response.primaryGeo as Record<string, any>;
+  if (response.primaryGeo && typeof response.primaryGeo === 'object') {
     for (const key of possibleKeys) {
-      if (key in primaryGeo) {
-        const count = primaryGeo[key];
+      if (key in response.primaryGeo) {
+        const count = (response.primaryGeo as any)[key];
         if (count !== null && count !== undefined) {
           const num = typeof count === 'string' ? parseInt(count.replace(/,/g, ''), 10) : Number(count);
           if (Number.isFinite(num) && num > 0) return num;
@@ -217,12 +215,44 @@ export async function POST(request: NextRequest) {
     return compressResponse(responsePayload);
   } catch (error) {
     console.error('Combined filters API error:', error);
+    
+    // Determine appropriate status code based on error type
+    let statusCode = 500;
+    let errorMessage = 'Failed to get combined counts';
+    
+    if (error instanceof Error) {
+      // Check for specific API error types
+      if (error.message.includes('API Server Error (502)') || 
+          error.message.includes('API Server Error (503)') || 
+          error.message.includes('API Server Error (504)')) {
+        // Gateway/Bad Gateway errors - API server is down
+        statusCode = 503; // Service Unavailable
+        errorMessage = error.message;
+      } else if (error.message.includes('API Server Timeout Error (500)')) {
+        // Server-side timeout (500 with timeout) - API server timed out internally
+        statusCode = 504; // Gateway Timeout
+        errorMessage = error.message;
+      } else if (error.message.includes('timeout') || error.message.includes('timed out')) {
+        // Client or server timeout errors
+        statusCode = 504; // Gateway Timeout
+        errorMessage = error.message;
+      } else if (error.message.includes('API Error')) {
+        // Other API errors - pass through the message
+        errorMessage = error.message;
+      } else {
+        // Generic errors
+        errorMessage = `Failed to get combined counts: ${error.message}`;
+      }
+    } else {
+      errorMessage = 'Failed to get combined counts: Unknown error';
+    }
+    
     return NextResponse.json(
       {
-      success: false,
-      error: `Failed to get combined counts: ${error instanceof Error ? error.message : 'Unknown error'}`
+        success: false,
+        error: errorMessage
       },
-      { status: 500 }
+      { status: statusCode }
     );
   } finally {
     geoCache.clear();
@@ -256,27 +286,31 @@ async function getAudienceBreakdownsFromApi(
     const universeList = buildUniverseList(universeFields);
   let aggregatedGeography: GeographyCounts = {};
 
+  // Make all API calls in parallel first
   const audienceResponses = await Promise.all(
-    geoIds.map(async geoId => {
-        const response = await apiService.getAudienceCount({
-          geoId,
-          ageRangeIds: demographicIds.ageRangeIds,
-          genderIds: demographicIds.genderIds,
-          partyIds: demographicIds.partyIds,
-          ethnicityIds: demographicIds.ethnicityIds,
-          incomeIds: demographicIds.incomeIds,
-          educationIds: demographicIds.educationIds,
-          generalVoteHistoryIds: '',
-          primaryVoteHistoryIds: '',
-          universeList: universeList || undefined
-        });
-      aggregatedGeography = mergeGeographyMaps(
-        aggregatedGeography,
-        extractGeographyFromAudienceResponse(response)
-      );
-      return response;
-    })
+    geoIds.map(async geoId =>
+      apiService.getAudienceCount({
+        geoId,
+        ageRangeIds: demographicIds.ageRangeIds,
+        genderIds: demographicIds.genderIds,
+        partyIds: demographicIds.partyIds,
+        ethnicityIds: demographicIds.ethnicityIds,
+        incomeIds: demographicIds.incomeIds,
+        educationIds: demographicIds.educationIds,
+        generalVoteHistoryIds: '',
+        primaryVoteHistoryIds: '',
+        universeList: universeList || undefined
+      })
+    )
   );
+
+  // Aggregate geography after all responses are received (avoid race conditions)
+  for (const response of audienceResponses) {
+    aggregatedGeography = mergeGeographyMaps(
+      aggregatedGeography,
+      extractGeographyFromAudienceResponse(response)
+    );
+  }
 
   counts.total = audienceResponses.reduce((sum, response) => sum + getPersonCountValue(response), 0);
   
@@ -300,34 +334,26 @@ async function getAudienceBreakdownsFromApi(
     });
   }
 
-  // Only make separate API calls for individual universe fields if:
-  // 1. There are multiple universe fields (need individual counts for OR logic)
-  // 2. OR there are no universe fields in the main call but we need individual counts
-  // If there's only one universe field, reuse the total count to avoid duplicate API calls
-  if (universeFields.length === 1 && universeList) {
-    // Single universe field: reuse the total count from the main API call
-    counts[universeFields[0]] = counts.total;
-  } else if (universeFields.length > 0) {
-    // Multiple universe fields: need individual counts for each field
-    const universeFieldCounts = await getUniverseFieldCounts(universeFields, geoIds, demographicIds);
-    Object.assign(counts, universeFieldCounts);
-  }
+  // OPTIMIZATION: We don't need individual counts per universe field
+  // The main API call already returns the correct total count with all universe fields combined
+  // This eliminates N separate API calls for N universe fields
+  // Frontend only displays the total count, not individual field breakdowns
 
+  // Process geography and demographics (these are CPU-bound operations, not I/O)
   const pickedGeography = pickGeographyLevels(aggregatedGeography, requestedLevels);
+  const demographics = extractDemographicBreakdownsFromResponses(audienceResponses);
+
+  // Finalize geography - limit entries early to reduce processing overhead
   const finalizedGeography = limitGeographyEntries(
     finalizeGeography(pickedGeography, requestedLevels),
     5
   );
 
-  const demographics = extractDemographicBreakdownsFromResponses(audienceResponses);
-
   // Extract political affiliation from party data
   const political = extractPoliticalAffiliationFromPartyData(demographics.party);
 
-  // Extract general vote history
+  // Extract vote history
   const generalVoteHistory = extractGeneralVoteHistoryFromResponses(audienceResponses);
-
-  // Extract primary vote history
   const primaryVoteHistory = extractPrimaryVoteHistoryFromResponses(audienceResponses);
 
   return {
@@ -353,28 +379,40 @@ async function getUniverseFieldCounts(
 
   const counts: { [key: string]: number } = {};
 
-  await Promise.all(
-    universeFields.map(async field => {
-      const mappedField = buildUniverseList([field]);
-      const responses = await Promise.all(
-        geoIds.map(geoId =>
-          apiService.getAudienceCount({
+  // Batch ALL API calls (all fields * all geoIds) into a single Promise.all for maximum parallelism
+  const allRequests: Array<{ field: string; geoId: number; promise: Promise<AudienceCountResponse> }> = [];
+  
+  for (const field of universeFields) {
+    const mappedField = buildUniverseList([field]);
+    for (const geoId of geoIds) {
+      allRequests.push({
+        field,
         geoId,
-            ageRangeIds: demographicIds.ageRangeIds,
-            genderIds: demographicIds.genderIds,
-            partyIds: demographicIds.partyIds,
-            ethnicityIds: demographicIds.ethnicityIds,
-            incomeIds: demographicIds.incomeIds,
-            educationIds: demographicIds.educationIds,
-        generalVoteHistoryIds: '',
-        primaryVoteHistoryIds: '',
-            universeList: mappedField || undefined
-          })
-        )
-      );
-      counts[field] = responses.reduce((sum, response) => sum + getPersonCountValue(response), 0);
-    })
-  );
+        promise: apiService.getAudienceCount({
+          geoId,
+          ageRangeIds: demographicIds.ageRangeIds,
+          genderIds: demographicIds.genderIds,
+          partyIds: demographicIds.partyIds,
+          ethnicityIds: demographicIds.ethnicityIds,
+          incomeIds: demographicIds.incomeIds,
+          educationIds: demographicIds.educationIds,
+          generalVoteHistoryIds: '',
+          primaryVoteHistoryIds: '',
+          universeList: mappedField || undefined
+        })
+      });
+    }
+  }
+
+  // Execute all requests in parallel
+  const responses = await Promise.all(allRequests.map(req => req.promise));
+
+  // Aggregate results by field
+  for (let i = 0; i < allRequests.length; i++) {
+    const { field } = allRequests[i];
+    const count = getPersonCountValue(responses[i]);
+    counts[field] = (counts[field] || 0) + count;
+  }
 
   return counts;
 }

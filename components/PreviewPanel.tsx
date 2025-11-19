@@ -417,6 +417,119 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
         >
           <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
             <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
+            Political Affiliation
+          </h3>
+          <div className="space-y-3">
+            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">Democrat</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.democrat || 0) / filteredCount * 100 : 0}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-bold text-blue-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.democrat || 0)}</span>
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">Republican</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.republican || 0) / filteredCount * 100 : 0}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-bold text-red-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.republican || 0)}</span>
+              </div>
+            </div>
+            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+              <span className="text-sm font-medium text-gray-700">Independent</span>
+              <div className="flex items-center space-x-3">
+                <div className="w-20 bg-gray-200 rounded-full h-2">
+                  <div 
+                    className="bg-gradient-to-r from-gray-500 to-gray-600 h-2 rounded-full transition-all duration-500" 
+                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.independent || 0) / filteredCount * 100 : 0}%` }}
+                  ></div>
+                </div>
+                <span className="text-sm font-bold text-gray-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.independent || 0)}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div 
+          className="bg-white rounded-2xl p-6 shadow-sm"
+          style={cardBorderStyle}
+        >
+          <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
+            <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
+            Media Consumption
+          </h3>
+          <div className="space-y-3">
+            {(() => {
+              // Placeholder data for media consumption
+              const mediaData = [
+                { name: 'Instagram', value: 0 },
+                { name: 'Facebook', value: 0 },
+                { name: 'X', value: 0 },
+                { name: 'YouTube', value: 0 },
+                { name: 'Streaming', value: 0 },
+              ];
+              
+              // Calculate total for percentages (using placeholder values)
+              const mediaTotal = mediaData.reduce((sum, item) => sum + item.value, 0);
+              
+              // Color gradients for different media platforms
+              const getGradientClass = (name: string) => {
+                if (name === 'Instagram') return 'from-pink-500 to-purple-500';
+                if (name === 'Facebook') return 'from-blue-500 to-indigo-500';
+                if (name === 'X') return 'from-gray-500 to-slate-500';
+                if (name === 'YouTube') return 'from-red-500 to-orange-500';
+                if (name === 'Streaming') return 'from-purple-500 to-pink-500';
+                return 'from-gray-400 to-gray-500';
+              };
+              
+              const getTextColor = (name: string) => {
+                if (name === 'Instagram') return 'text-pink-600';
+                if (name === 'Facebook') return 'text-blue-600';
+                if (name === 'X') return 'text-gray-600';
+                if (name === 'YouTube') return 'text-red-600';
+                if (name === 'Streaming') return 'text-purple-600';
+                return 'text-gray-600';
+              };
+              
+              return mediaData.map((item) => {
+                const percentage = mediaTotal > 0 ? (item.value / mediaTotal * 100) : 0;
+                
+                return (
+                  <div key={item.name} className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
+                    <span className="text-sm font-medium text-gray-700">{item.name}</span>
+                    <div className="flex items-center space-x-3">
+                      <div className="w-20 bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`bg-gradient-to-r ${getGradientClass(item.name)} h-2 rounded-full transition-all duration-500`}
+                          style={{ width: `${percentage}%` }}
+                        ></div>
+                      </div>
+                      <span className={`text-sm font-bold ${getTextColor(item.name)} whitespace-nowrap w-20 text-right`}>
+                        {formatNumber(item.value)}
+                      </span>
+                    </div>
+                  </div>
+                );
+              });
+            })()}
+          </div>
+        </div>
+
+        <div 
+          className="bg-white rounded-2xl p-6 shadow-sm"
+          style={cardBorderStyle}
+        >
+          <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
+            <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
             General Vote History
           </h3>
           <div className="space-y-3">
@@ -558,54 +671,6 @@ export function PreviewPanel({ audienceStats, filteredCount, totalCount, geograp
                 );
               });
             })()}
-          </div>
-        </div>
-
-        <div 
-          className="bg-white rounded-2xl p-6 shadow-sm"
-          style={cardBorderStyle}
-        >
-          <h3 className="text-lg font-bold text-gray-900 mb-5 flex items-center">
-            <div className="w-2.5 h-2.5 rounded-full mr-3 shadow-sm" style={{ background: 'linear-gradient(135deg, #FF4080, #FF8C4D)' }}></div>
-            Political Affiliation
-          </h3>
-          <div className="space-y-3">
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Democrat</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-blue-500 to-blue-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.democrat || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-blue-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.democrat || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Republican</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-red-500 to-red-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.republican || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-red-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.republican || 0)}</span>
-              </div>
-            </div>
-            <div className="flex justify-between items-center p-3 bg-white/50 rounded-lg">
-              <span className="text-sm font-medium text-gray-700">Independent</span>
-              <div className="flex items-center space-x-3">
-                <div className="w-20 bg-gray-200 rounded-full h-2">
-                  <div 
-                    className="bg-gradient-to-r from-gray-500 to-gray-600 h-2 rounded-full transition-all duration-500" 
-                    style={{ width: `${filteredCount > 0 ? (audienceStats.political?.independent || 0) / filteredCount * 100 : 0}%` }}
-                  ></div>
-                </div>
-                <span className="text-sm font-bold text-gray-600 whitespace-nowrap w-20 text-right">{formatNumber(audienceStats.political?.independent || 0)}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>

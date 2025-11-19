@@ -353,10 +353,46 @@ export function limitGeographyEntries(
   const limited: GeographyCounts = {};
 
   Object.entries(geography).forEach(([level, values]) => {
-    const sortedEntries = Object.entries(values || {})
-      .sort(([, a], [, b]) => (b as number) - (a as number))
-      .slice(0, topN);
-    limited[level] = Object.fromEntries(sortedEntries);
+    if (!values || Object.keys(values).length === 0) {
+      limited[level] = {};
+      return;
+    }
+
+    const entries = Object.entries(values);
+    
+    if (entries.length <= topN) {
+      // Few entries, just sort them all (no optimization needed)
+      limited[level] = Object.fromEntries(
+        entries.sort(([, a], [, b]) => (b as number) - (a as number))
+      );
+    } else {
+      // Many entries: use max heap approach - O(n log k) where k = topN
+      // Maintain only top N entries, sort only when needed
+      const topEntries: [string, number][] = [];
+      
+      for (const [name, count] of entries) {
+        const num = count as number;
+        
+        if (topEntries.length < topN) {
+          // Add entries until we reach topN
+          topEntries.push([name, num]);
+          if (topEntries.length === topN) {
+            // Sort once when we reach topN (small array, fast)
+            topEntries.sort(([, a], [, b]) => b - a);
+          }
+        } else {
+          // Compare with smallest in topN - if larger, replace it
+          if (num > topEntries[topN - 1][1]) {
+            topEntries[topN - 1] = [name, num];
+            // Re-sort only the small topN array (much faster than sorting all entries)
+            topEntries.sort(([, a], [, b]) => b - a);
+          }
+          // If smaller or equal, skip (no sort needed)
+        }
+      }
+      
+      limited[level] = Object.fromEntries(topEntries);
+    }
   });
 
   return limited;
