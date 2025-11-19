@@ -190,6 +190,7 @@ export function GeoWizard({
   const [selectedRefinementType, setSelectedRefinementType] = useState<RefinementType>(null);
   const [refinementSelections, setRefinementSelections] = useState<string[]>([]);
   const [showDMAMessage, setShowDMAMessage] = useState(false);
+  const [showNationalMessage, setShowNationalMessage] = useState(false);
   const [geographicOptions, setGeographicOptions] = useState<any>({
     counties: {},
     congressionalDistricts: {},
@@ -240,8 +241,7 @@ export function GeoWizard({
 
   const handleRouteSelection = (route: RouteType) => {
     if (route === 'national') {
-      setSelectedRoute('national');
-      onNationalConfirm && onNationalConfirm();
+      setShowNationalMessage(true);
     } else if (route === 'statewide') {
       setSelectedRoute('statewide');
       setCurrentStep('state-selection');
@@ -388,6 +388,11 @@ export function GeoWizard({
               onClick={() => handleRouteSelection('national')}
               className="group relative overflow-hidden rounded-2xl bg-gradient-to-br from-blue-50 to-indigo-50 border-2 border-blue-200 p-8 hover:shadow-2xl transition-all duration-300 transform hover:scale-105"
             >
+              <div className="absolute top-3 right-3">
+                <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-yellow-400 text-yellow-900 shadow-sm">
+                  Coming Soon
+                </span>
+              </div>
               <div className="flex flex-col items-center text-center space-y-4">
                 <div 
                   className="p-4 rounded-xl shadow-lg group-hover:scale-110 transition-transform duration-300"
@@ -452,6 +457,33 @@ export function GeoWizard({
             </button>
           </div>
         </div>
+
+        {/* National Coming Soon Modal */}
+        {showNationalMessage && (
+          <div className="fixed inset-0 bg-gray-500/30 backdrop-blur-sm z-[9999] flex items-center justify-center">
+            <div className="bg-white rounded-2xl shadow-2xl border border-gray-200 p-8 max-w-md mx-4">
+              <div className="text-center space-y-4">
+                <div 
+                  className="w-16 h-16 mx-auto rounded-xl shadow-lg flex items-center justify-center"
+                  style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)' }}
+                >
+                  <Globe className="h-8 w-8 text-white" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-900">National Selection</h3>
+                <p className="text-gray-600">
+                  National audience selection is coming soon! This feature will allow you to view and filter nationwide audience data across all states.
+                </p>
+                <button
+                  onClick={() => setShowNationalMessage(false)}
+                  className="w-full px-6 py-3 text-white font-bold rounded-xl shadow-lg hover:shadow-xl transition-all duration-300"
+                  style={{ background: 'linear-gradient(135deg, #3B82F6, #6366F1)' }}
+                >
+                  Got It
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* DMA Coming Soon Modal */}
         {showDMAMessage && (

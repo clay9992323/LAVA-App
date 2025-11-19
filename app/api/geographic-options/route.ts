@@ -5,7 +5,6 @@ import { convertDemographicFiltersToDimensionIds } from '@/lib/dimensionsCache';
 import {
   extractGeographyFromAudienceResponse,
   finalizeGeography,
-  limitGeographyEntries,
   pickGeographyLevels
 } from '@/lib/geographyBreakdown';
 
@@ -74,12 +73,11 @@ export async function POST(request: NextRequest) {
       universeList: universeList || undefined
     });
 
-    const geography = limitGeographyEntries(
-      finalizeGeography(
-        pickGeographyLevels(extractGeographyFromAudienceResponse(response), DEFAULT_LEVELS),
-        DEFAULT_LEVELS
-      ),
-      5
+    // Don't limit entries for selection dropdowns - show all options
+    // The top 5 limit should only apply to visual breakdowns, not selections
+    const geography = finalizeGeography(
+      pickGeographyLevels(extractGeographyFromAudienceResponse(response), DEFAULT_LEVELS),
+      DEFAULT_LEVELS
     );
 
     const geographicOptions = {
